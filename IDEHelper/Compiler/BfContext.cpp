@@ -2721,7 +2721,11 @@ void BfContext::UpdateRevisedTypes()
 
 		if (mCompiler->mInterfaceSlotCountChanged)
 		{
-			if ((module->mUsedSlotCount >= 0) && (module->mUsedSlotCount != mCompiler->mMaxInterfaceSlots))
+			// Code built with a different slot count has stale vdata offsets baked into it, since the
+			//  interface slot map sits before the virtual methods. 'mUsedSlotCount' only records the
+			//  dependencies we noticed while generating, so a module that was never marked (-1) has to be
+			//  rebuilt too - it may still hold virtual calls made before the count changed.
+			if (module->mUsedSlotCount != mCompiler->mMaxInterfaceSlots)
 				needsModuleRebuild = true;
 		}
 
