@@ -463,7 +463,7 @@ BfMethodRef& BfMethodRef::operator=(BfMethodInstance* methodInstance)
 				mMethodGenericArguments.Add(type);
 		}
 		mSignatureHash = (int)mTypeInstance->mTypeDef->mSignatureHash;
-		if (methodInstance->mAlwaysInline)
+		if (methodInstance->mInlineKind == BfInlineKind_Always)
 			mMethodRefFlags = BfMethodRefFlag_AlwaysInclude;
 		else
 			mMethodRefFlags = BfMethodRefFlag_None;
@@ -1071,7 +1071,7 @@ bool BfMethodInstance::IsVarArgs()
 
 bool BfMethodInstance::AlwaysInline()
 {
-	return mAlwaysInline;
+	return mInlineKind == BfInlineKind_Always;
 }
 
 BfImportCallKind BfMethodInstance::GetImportCallKind()
@@ -1310,6 +1310,17 @@ BfParamKind BfMethodInstance::GetParamKind(int paramIdx)
 	if (methodParam->mDelegateParamIdx != -1)
 		return BfParamKind_DelegateParam;
 	return paramDef->mParamKind;
+}
+
+bool BfMethodInstance::GetParamHasDefault(int paramIdx)
+{
+	if (paramIdx == -1)
+		return false;
+	BfMethodParam* methodParam = &mParams[paramIdx];
+	if ((methodParam->mParamDefIdx < 0) || (methodParam->mParamDefIdx >= mMethodDef->mParams.mSize))
+		return false;
+	BfParameterDef* paramDef = mMethodDef->mParams[methodParam->mParamDefIdx];
+	return (paramDef->mParamDeclaration != NULL) && (paramDef->mParamDeclaration->mInitializer != NULL);
 }
 
 bool BfMethodInstance::WasGenericParam(int paramIdx)
