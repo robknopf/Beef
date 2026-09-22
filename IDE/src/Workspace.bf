@@ -1129,14 +1129,13 @@ namespace IDE
 			{
 				options.mEnableRealtimeLeakCheck = !isRelease;
 				options.mEnableSideStack = isParanoid;
-				options.mAllowHotSwapping = !isRelease;
 			}
 			else
 			{
 	            options.mEnableRealtimeLeakCheck = false;
 	            options.mEnableSideStack = false;
-				options.mAllowHotSwapping = false;
 			}
+			options.mAllowHotSwapping = ((platformType.SupportsHotSwapping) && (!isRelease));
 
 			if (platformType == .Wasm)
 			{
