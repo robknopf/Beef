@@ -117,6 +117,10 @@ namespace IDE
 #else
 			public bool IsWSL => false;
 #endif
+
+			// WinDebugger hot swaps natively, and on Linux the LLDB backend does. A Linux platform
+			//  from a Windows host is WSL, which that backend does not cover
+			public bool SupportsHotSwapping => ((this == .Windows) || ((this == .Linux) && (!IsWSL)));
 			
 			public static PlatformType GetFromName(StringView name, StringView targetTriple = default)
 			{
@@ -903,7 +907,7 @@ namespace IDE
 								data.ConditionalAdd("ArithmeticCheck", options.mArithmeticCheck, false);
                                 data.ConditionalAdd("EnableRealtimeLeakCheck", options.mEnableRealtimeLeakCheck, (platformType == .Windows) && !isRelease);
                                 data.ConditionalAdd("EnableSideStack", options.mEnableSideStack, (platformType == .Windows) && isParanoid);
-								data.ConditionalAdd("AllowHotSwapping", options.mAllowHotSwapping, (platformType == .Windows) && !isRelease);
+								data.ConditionalAdd("AllowHotSwapping", options.mAllowHotSwapping, (platformType.SupportsHotSwapping) && (!isRelease));
 								data.ConditionalAdd("AllocStackTraceDepth", options.mAllocStackTraceDepth, 1);
 
 								data.ConditionalAdd("IncrementalBuild", options.mIncrementalBuild, !isRelease);
@@ -1247,7 +1251,7 @@ namespace IDE
 					options.mArithmeticCheck = data.GetBool("ArithmeticCheck", false);
                     options.mEnableRealtimeLeakCheck = data.GetBool("EnableRealtimeLeakCheck", (platformType == .Windows) && !isRelease);
                     options.mEnableSideStack = data.GetBool("EnableSideStack", (platformType == .Windows) && isParanoid);
-					options.mAllowHotSwapping = data.GetBool("AllowHotSwapping", (platformType == .Windows) && !isRelease);
+					options.mAllowHotSwapping = data.GetBool("AllowHotSwapping", (platformType.SupportsHotSwapping) && (!isRelease));
 					options.mAllocStackTraceDepth = data.GetInt("AllocStackTraceDepth", 1);
 
 					options.mIncrementalBuild = data.GetBool("IncrementalBuild", !isRelease);
