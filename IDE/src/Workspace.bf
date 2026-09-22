@@ -119,7 +119,8 @@ namespace IDE
 #endif
 
 			// WinDebugger hot swaps natively, and on Linux the LLDB backend does. A Linux platform
-			//  from a Windows host is WSL, which that backend does not cover
+			//  from a Windows host is WSL, which launches through '@gdb_wsl' and so never reaches
+			//  the LLDB backend at all
 			public bool SupportsHotSwapping => ((this == .Windows) || ((this == .Linux) && (!IsWSL)));
 			
 			public static PlatformType GetFromName(StringView name, StringView targetTriple = default)
