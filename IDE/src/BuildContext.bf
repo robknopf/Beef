@@ -190,6 +190,47 @@ namespace IDE
 			return didCommands ? .HadCommands : .NoCommands;
 		}
 
+		// The emsdk that fetch_wasm.bat unpacks has an emcc.exe, but an emsdk installed from
+		//  upstream only ships emcc.bat on Windows, and a .bat cannot be spawned directly.
+		//  'outNeedsShell' tells the caller it has to be run through a shell
+		public static bool GetEmccPath(StringView emsdkPath, String outPath, out bool outNeedsShell)
+		{
+			outNeedsShell = false;
+
+			String basePath = scope .(emsdkPath);
+			if ((!basePath.EndsWith('\\')) && (!basePath.EndsWith('/')))
+				basePath.Append("/");
+			basePath.Append("upstream/emscripten/emcc");
+
+#if BF_PLATFORM_WINDOWS
+			outPath.Clear();
+			outPath.Append(basePath);
+			outPath.Append(".exe");
+			if (File.Exists(outPath))
+				return true;
+
+			outPath.Clear();
+			outPath.Append(basePath);
+			outPath.Append(".bat");
+			if (File.Exists(outPath))
+			{
+				outNeedsShell = true;
+				return true;
+			}
+
+			// Nothing there yet. Name the one a pending install will bring, so the path we
+			//  report is the one that is about to exist
+			outPath.Clear();
+			outPath.Append(basePath);
+			outPath.Append(".exe");
+			return false;
+#else
+			outPath.Clear();
+			outPath.Append(basePath);
+			return File.Exists(outPath);
+#endif
+		}
+
 		public static Result<void> FindExecutableInPath(String filename, String outPath)
 		{
 			String PATH = scope .();
@@ -998,16 +1039,11 @@ namespace IDE
 						}
 					}
 
-					// The emsdk ships emcc.exe on Windows and a plain emcc everywhere else, so the
-					//  suffix cannot be part of the literal: hardcoding it made every POSIX wasm
-					//  link fail with "Failed to execute ...emcc.exe" after a successful compile.
-#if BF_PLATFORM_WINDOWS
-					compilerExePath.Append(@"upstream/emscripten/emcc.exe");
-#else
-					compilerExePath.Append(@"upstream/emscripten/emcc");
-#endif
+					String emsdkRoot = scope .(compilerExePath);
+					bool emccNeedsShell = false;
+					bool foundEmcc = GetEmccPath(emsdkRoot, compilerExePath, out emccNeedsShell);
 					// A pending install has no emcc yet; the queued fetch_wasm.bat brings it.
-					if ((!gApp.mSettings.mEmscriptenPendingInstall) && (!File.Exists(compilerExePath)))
+					if ((!foundEmcc) && (!gApp.mSettings.mEmscriptenPendingInstall))
 					{
 						gApp.OutputErrorLine("Emscripten compiler not found at '{}'. Check Wasm configuration in File\\Preferences\\Settings.", compilerExePath);
 						return false;
@@ -1017,6 +1053,8 @@ namespace IDE
 			        var runCmd = gApp.QueueRun(compilerExePath, linkLine, targetDir, .UTF8);
 					runCmd.mReference = new .(project.mProjectName);
 			        runCmd.mOnlyIfNotFailed = true;
+					if (emccNeedsShell)
+						runCmd.mRunFlags |= .ShellCommand;
 			        var tagetCompletedCmd = new IDEApp.TargetCompletedCmd(project);
 			        tagetCompletedCmd.mOnlyIfNotFailed = true;
 			        gApp.mExecutionQueue.Add(tagetCompletedCmd);
