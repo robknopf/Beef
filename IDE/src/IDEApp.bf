@@ -11516,7 +11516,9 @@ namespace IDE
 									IDEUtils.FixFilePath(newString);
 								case "EmccPath":
 									newString = scope:ReplaceBlock String();
-									newString.AppendF($"{gApp.mSettings.mEmscriptenPath}/upstream/emscripten/emcc.exe");
+									// Had a hardcoded emcc.exe, which named a file that cannot exist on
+									//  POSIX and is not what an upstream emsdk installs on Windows
+									BuildContext.GetEmccPath(gApp.mSettings.mEmscriptenPath, newString, var emccNeedsShell);
 								}
 							}
 
